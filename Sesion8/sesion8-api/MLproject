@@ -1,0 +1,29 @@
+name: sentiment-api-session8
+
+conda_env: conda.yaml
+
+entry_points:
+  serve:
+    parameters:
+      host:
+        type: str
+        default: 0.0.0.0
+      port:
+        type: int
+        default: 8000
+      model_name:
+        type: str
+        default: SentimentAnalyzer
+      model_stage:
+        type: str
+        default: Production
+      tracking_uri:
+        type: str
+        default: sqlite:///../sentiment-project/mlflow.db
+      registry_uri:
+        type: str
+        default: sqlite:///../sentiment-project/mlflow.db
+    command: "MODEL_NAME={model_name} MODEL_STAGE={model_stage} MLFLOW_TRACKING_URI={tracking_uri} MLFLOW_REGISTRY_URI={registry_uri} $CONDA_PREFIX/bin/python -m uvicorn app:app --host {host} --port {port}"
+
+  test:
+    command: "$CONDA_PREFIX/bin/python -m unittest -v test_api.py"

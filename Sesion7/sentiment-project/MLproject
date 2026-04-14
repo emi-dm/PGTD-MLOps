@@ -1,0 +1,24 @@
+name: sentiment-analysis
+
+# Usar entorno reproducible con conda
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      model_name:
+        type: str
+        default: distilbert-base-uncased-finetuned-sst-2-english
+      batch_size:
+        type: int
+        default: 16
+      confidence_threshold:
+        type: float
+        default: 0.7
+      max_length:
+        type: int
+        default: 128
+      num_samples:
+        type: int
+        default: 200
+    command: "python train.py --model_name {model_name} --batch_size {batch_size} --confidence_threshold {confidence_threshold} --max_length {max_length} --num_samples {num_samples}"
