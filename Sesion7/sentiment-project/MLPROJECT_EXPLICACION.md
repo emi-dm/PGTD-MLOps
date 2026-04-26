@@ -29,20 +29,32 @@ entry_points:
     parameters:
       model_name:
         type: str
-        default: distilbert-base-uncased-finetuned-sst-2-english
+        default: distilbert-base-uncased
+      epochs:
+        type: int
+        default: 2
+      learning_rate:
+        type: float
+        default: 5e-5
       batch_size:
         type: int
         default: 16
-      confidence_threshold:
-        type: float
-        default: 0.7
       max_length:
         type: int
         default: 128
-      num_samples:
+      weight_decay:
+        type: float
+        default: 0.01
+      num_train_samples:
+        type: int
+        default: 500
+      num_eval_samples:
         type: int
         default: 200
-    command: "python train.py --model_name {model_name} --batch_size {batch_size} --confidence_threshold {confidence_threshold} --max_length {max_length} --num_samples {num_samples}"
+      confidence_threshold:
+        type: float
+        default: 0.5
+    command: "python train.py --model_name {model_name} --epochs {epochs} --learning_rate {learning_rate} --batch_size {batch_size} --max_length {max_length} --weight_decay {weight_decay} --num_train_samples {num_train_samples} --num_eval_samples {num_eval_samples} --confidence_threshold {confidence_threshold}"
 ```
 
 ---
@@ -75,10 +87,14 @@ Cada parámetro tiene:
 Comando final que MLflow ejecuta, sustituyendo placeholders:
 
 - `{model_name}`
+- `{epochs}`
+- `{learning_rate}`
 - `{batch_size}`
-- `{confidence_threshold}`
 - `{max_length}`
-- `{num_samples}`
+- `{weight_decay}`
+- `{num_train_samples}`
+- `{num_eval_samples}`
+- `{confidence_threshold}`
 
 Por ejemplo, `python train.py ...` se construye automáticamente con defaults o
 con valores recibidos por CLI.
@@ -106,11 +122,15 @@ Cuando ejecutas `mlflow run .`, ocurre esto:
 
 ### Cambiar parámetros sin tocar código
 
-`mlflow run . -P confidence_threshold=0.8 -P batch_size=32`
+`mlflow run . -P epochs=3 -P learning_rate=3e-5 -P num_train_samples=1000`
+
+### Ejecución rápida para pruebas
+
+`mlflow run . -P epochs=1 -P num_train_samples=100 -P num_eval_samples=50`
 
 ### Forzar experimento de tracking
 
-`mlflow run . --experiment-name sentiment-analysis-hf -P num_samples=100`
+`mlflow run . --experiment-name sentiment-analysis-hf -P epochs=2`
 
 ---
 

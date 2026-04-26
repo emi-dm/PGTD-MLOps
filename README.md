@@ -44,18 +44,22 @@ Consolidar un pipeline MLOps de extremo a extremo, pasando de experimentación l
 ## Estructura del repositorio
 
 - `Sesion6/` · **MLflow Tracking**
+  - `README.md`
   - `experiment_tracking.py`
   - `requirements.txt`
 - `Sesion7/` · **MLflow Projects + Model Registry**
   - `README.md`
-  - `sentiment-project/`
+  - `sentiment-project/` (MLproject, train.py, register_and_promote.py, ...)
 - `Sesion8/` · **API de inferencia (FastAPI) usando Registry**
   - `sesion8-api/README.md`
   - `sesion8-api/app.py`
+  - `sesion8-api/test_api.py`
 - `Sesion9/` · **Despliegue en Docker / Docker Compose**
   - `sesion9-api/README.md`
+  - `sesion9-api/app.py`
   - `sesion9-api/docker-compose.yml`
 - `Sesion10/` · **Monitorización (Evidently)**
+  - `README.md`
   - `generate_drift_report.py`
   - `monitor_production.py`
   - `drift_report.html`
@@ -64,11 +68,23 @@ Consolidar un pipeline MLOps de extremo a extremo, pasando de experimentación l
 
 ## Ruta de aprendizaje por sesión
 
-1. **Sesión 6**: registrar experimentos, parámetros, métricas y artefactos en MLflow.
-2. **Sesión 7**: estandarizar ejecución con MLflow Projects y gestionar ciclo de vida en Model Registry.
-3. **Sesión 8**: publicar el modelo en una API REST con FastAPI.
-4. **Sesión 9**: contenerizar y orquestar el stack completo con Docker Compose.
-5. **Sesión 10**: detectar data drift y degradación de calidad con Evidently para cerrar el ciclo MLOps.
+1. **Sesión 6 — MLflow Tracking**: registrar experimentos, parámetros,
+   métricas y artefactos. Evaluar un modelo pre-entrenado con distintas
+   configuraciones y comparar runs en la UI de MLflow.
+2. **Sesión 7 — MLflow Projects + Model Registry**: estandarizar ejecución
+   con `MLproject`, fine-tuning real de DistilBERT en SST-2, y gestionar
+   el ciclo de vida del modelo en Model Registry (None → Staging →
+   Production).
+3. **Sesión 8 — API de inferencia**: publicar el modelo como API REST con
+   FastAPI, cargándolo desde `models:/SentimentAnalyzer/Production` sin
+   referenciar un run concreto. Incluye endpoint de explicabilidad por
+   oclusión de tokens.
+4. **Sesión 9 — Docker + Docker Compose**: contenerizar la API y orquestar
+   el stack completo (MLflow + API) con Docker Compose, health checks y
+   volúmenes persistentes.
+5. **Sesión 10 — Monitorización**: detectar data drift y caída de
+   rendimiento con Evidently. Scripts diseñados para integración con CI/CD
+   que cierran el ciclo MLOps (si hay drift → reentrenar).
 
 ---
 
