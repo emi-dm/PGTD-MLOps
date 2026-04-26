@@ -35,5 +35,25 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  monitor:
+    image: python:3.11-slim
+    command: >
+      sh -c "pip install --no-cache-dir
+      evidently>=0.6.0 pandas>=2.0.0 numpy>=1.24.0
+      datasets>=2.14.0 requests>=2.31.0 &&
+      python /app/monitor_production.py
+      --mode live
+      --api-url http://api:8000
+      --num-samples 100
+      --interval 120"
+    volumes:
+      - ../../Sesion10/monitor_production.py:/app/monitor_production.py:ro
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   mlflow_data:

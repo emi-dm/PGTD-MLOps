@@ -91,7 +91,7 @@ def configure_mlflow_uris() -> tuple[str, str]:
     """
     default_sqlite = (
         Path(__file__).resolve().parent.parent.parent /
-        "Sesion7" / "sentiment-project" / "mlflow.db" "mlflow.db"
+        "Sesion7" / "sentiment-project" / "mlflow.db"
     )
     fallback_uri = f"sqlite:///{default_sqlite}"
 

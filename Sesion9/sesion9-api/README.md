@@ -154,7 +154,7 @@ esta sesión:
 
 ## Stack Docker Compose
 
-El `docker-compose.yml` define dos servicios:
+El `docker-compose.yml` define tres servicios:
 
 ### Servicio `mlflow`
 
@@ -171,6 +171,20 @@ El `docker-compose.yml` define dos servicios:
 - Se conecta a MLflow vía `MLFLOW_TRACKING_URI=http://mlflow:5000`.
 - Espera a que MLflow esté `healthy` antes de arrancar.
 - Reinicio automático (`restart: unless-stopped`).
+
+### Servicio `monitor` (Sesión 10)
+
+- Imagen: `python:3.11-slim`
+- Monta `Sesion10/monitor_production.py` como volumen de solo lectura.
+- Ejecuta monitorización en modo `live` cada 120 segundos.
+- Envía textos de SST-2 al endpoint `/predict` de la API.
+- Compara predicciones con ground truth y detecta drift con Evidently.
+- Espera a que la API esté arrancada antes de iniciar.
+- Reinicio automático (`restart: unless-stopped`).
+
+Este servicio **cierra el ciclo MLOps**: conecta la monitorización de la
+Sesión 10 con el despliegue de la Sesión 9, detectando cuándo el modelo
+necesita reentrenarse.
 
 ## Ejecución
 
@@ -194,9 +208,10 @@ docker run --rm -p 8000:8000 \
 ### Stack completo con Docker Compose
 
 ```bash
-docker compose up -d          # Levantar stack
-docker compose logs -f        # Ver logs
+docker compose up -d          # Levantar stack (mlflow + api + monitor)
+docker compose logs -f        # Ver todos los logs
 docker compose logs -f api    # Logs solo de la API
+docker compose logs -f monitor  # Logs del monitor de drift
 docker compose ps             # Estado de servicios
 docker compose up -d --build api  # Rebuild solo la API
 docker compose down           # Parar stack

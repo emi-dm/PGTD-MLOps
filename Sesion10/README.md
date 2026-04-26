@@ -164,14 +164,49 @@ distribuciones:
 
 | Archivo | Descripción |
 |---|---|
+| `app.py` | API FastAPI de inferencia con interfaz HTML interactiva |
+| `index.html` | Página web interactiva para enviar textos y ver predicciones en tiempo real |
 | `generate_drift_report.py` | Genera un informe HTML visual de drift con Evidently |
-| `monitor_production.py` | Script de monitorización programática con alertas (diseñado para cron/CI) |
+| `monitor_production.py` | Monitorización con dos modos: `simulated` (datos ficticios) y `live` (conecta con la API desplegada) |
 | `requirements.txt` | Dependencias del módulo |
 | `drift_report.html` | Informe generado (ejemplo de salida) |
 
+> **Nota**: el `docker-compose.yml` de la Sesión 9 incluye un servicio
+> `monitor` que ejecuta `monitor_production.py` en modo `live` cada 2
+> minutos, cerrando el ciclo MLOps automáticamente.
+
 ## Ejecución
 
-### 1. Generar informe HTML de drift
+### 1. API de inferencia con interfaz interactiva
+
+```bash
+cd Sesion10
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+Abre http://localhost:8000 en el navegador para acceder a la interfaz
+interactiva. Permite escribir uno o varios textos (uno por línea) y
+obtener la predicción de sentimiento del modelo en tiempo real.
+
+La API expone los siguientes endpoints:
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/` | GET | Interfaz HTML interactiva |
+| `/health` | GET | Estado de la API y modelo |
+| `/predict` | POST | Predicción de sentimiento (JSON) |
+| `/docs` | GET | Documentación Swagger/OpenAPI |
+
+Ejemplo de petición con `curl`:
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["This movie is great!", "Terrible film."]}'
+```
+
+### 2. Generar informe HTML de drift
 
 ```bash
 cd Sesion10
@@ -182,10 +217,10 @@ python generate_drift_report.py
 Abre `drift_report.html` en el navegador para ver el análisis visual con
 gráficas de distribuciones, tests estadísticos y resumen de drift.
 
-### 2. Ejecutar monitorización programática
+### 3. Monitorización con datos simulados (standalone)
 
 ```bash
-python monitor_production.py
+python monitor_production.py --mode simulated
 ```
 
 Salida JSON con alertas y recomendación de reentrenamiento:
@@ -200,29 +235,88 @@ Salida JSON con alertas y recomendación de reentrenamiento:
   "accuracy_ref": 0.904,
   "accuracy_prod": 0.852,
   "accuracy_drop": 0.052,
-  "needs_retraining": true
+  "needs_retraining": true,
+  "mode": "simulated"
 }
 ```
 
-### 3. Integración con CI/CD
+### 4. Monitorización conectada a la API desplegada (live)
+
+Este modo cierra el ciclo MLOps: conecta con la API de la Sesión 9, envía
+textos reales de SST-2 al endpoint `/predict`, compara las predicciones
+con el ground truth, y detecta drift en los datos de producción.
+
+```bash
+# Con Docker Compose arriba (Sesión 9):
+python monitor_production.py --mode live --api-url http://localhost:8000
+
+# O con intervalo de chequeo continuo (cada 120s):
+python monitor_production.py --mode live --api-url http://localhost:8000 --interval 120
+```
+
+**¿Qué hace en modo live?**
+
+1. Espera a que la API esté disponible (`/health`).
+2. Carga datos de referencia (SST-2 validation, primera mitad).
+3. Carga datos de producción (SST-2 validation, segunda mitad).
+4. Envía los textos de producción a `/predict` y recoge predicciones.
+5. Construye features textuales (`text_length`, `word_count`, `avg_word_len`).
+6. Compara distribuciones con Evidently (data drift).
+7. Compara accuracy del modelo con la referencia.
+8. Devuelve alertas si hay drift o caída de rendimiento.
+
+### 5. Monitorización como servicio Docker
+
+El `docker-compose.yml` de la Sesión 9 incluye un servicio `monitor` que
+ejecuta la monitorización automáticamente cada 2 minutos:
+
+```bash
+cd Sesion9/sesion9-api
+docker compose up -d
+```
+
+El stack levanta 3 servicios:
+
+| Servicio | Puerto | Función |
+|---|---|---|
+| `mlflow` | 5001 | Tracking server + Model Registry |
+| `api` | 8000 | API de inferencia FastAPI |
+| `monitor` | — | Monitorización periódica de drift |
+
+Ver logs del monitor:
+
+```bash
+docker compose logs -f monitor
+```
+
+### 6. Integración con CI/CD
 
 `monitor_production.py` devuelve código de salida `1` si se detecta que
 el modelo necesita reentrenamiento:
 
 ```bash
-python monitor_production.py || echo "Reentrenamiento necesario"
+python monitor_production.py --mode simulated || echo "Reentrenamiento necesario"
 ```
 
 En un pipeline real de GitHub Actions:
 
 ```yaml
 - name: Check model drift
-  run: python Sesion10/monitor_production.py
+  run: python Sesion10/monitor_production.py --mode simulated
 
 - name: Retrain model
   if: failure()
   run: mlflow run Sesion7/sentiment-project --experiment-name sentiment-analysis-hf
 ```
+
+## Parámetros de `monitor_production.py`
+
+| Parámetro | Default | Descripción |
+|---|---|---|
+| `--mode` | `simulated` | `simulated` (datos ficticios) o `live` (conecta con API) |
+| `--api-url` | `http://api:8000` | URL base de la API (solo modo live) |
+| `--num-samples` | `200` | Número de muestras a evaluar (modo live) |
+| `--interval` | `0` | Segundos entre chequeos. 0 = ejecutar una vez |
 
 ## Umbrales de alerta
 
@@ -235,6 +329,9 @@ En un pipeline real de GitHub Actions:
 
 | Librería | Función |
 |---|---|
+| **FastAPI** | Framework web para la API de inferencia |
+| **Uvicorn** | Servidor ASGI para ejecutar FastAPI |
+| **MLflow** | Carga del modelo desde Model Registry |
 | **Evidently** | Generación de reportes de drift y monitorización |
 | **Transformers** | Pipeline de inferencia para generar predicciones |
 | **Datasets** | Carga del dataset SST-2 desde HuggingFace |
@@ -272,6 +369,8 @@ Esta sesión cierra el ciclo. El flujo completo del curso es:
 │  └─ Detectar data drift con Evidently                           │
 │  └─ Monitorizar caída de accuracy                               │
 │  └─ Alertar y recomendar reentrenamiento                        │
+│  └─ Modo live: conecta con API desplegada (Sesión 9)            │
+│  └─ Servicio monitor en Docker Compose                          │
 │  └─ Integrar con CI/CD para cerrar el ciclo                     │
 │                                                                 │
 │  ─────────────────────────────────────────────────────────────  │
