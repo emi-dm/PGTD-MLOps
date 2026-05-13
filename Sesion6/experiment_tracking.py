@@ -32,6 +32,10 @@ except ImportError:  # pragma: no cover - dependencia opcional.
 
 EXPERIMENT_NAME = "sentiment-analysis-hf"
 
+# Estas configuraciones cambian solo en los hiperparámetros de inferencia.
+# La idea es comparar cómo afectan el umbral, el batch size y la longitud
+# máxima al rendimiento y a la cobertura de predicciones.
+
 # Configuraciones a comparar (según guía de la sesión).
 CONFIGS: list[dict[str, Any]] = [
     {
@@ -63,6 +67,7 @@ def _load_optional_env_file() -> None:
     if load_dotenv is None:
         return
 
+    # Se carga solo si la dependencia existe; el script sigue funcionando sin ella.
     load_dotenv()
 
 
@@ -75,6 +80,8 @@ def _tmp_file(name: str) -> Path:
     Returns:
         Path con ruta final.
     """
+    # Se usa el directorio temporal del sistema para evitar artefactos fijos
+    # dentro del proyecto y facilitar la limpieza automática.
     return Path(tempfile.gettempdir()) / name
 
 
@@ -91,6 +98,8 @@ def _map_model_label(raw_label: str) -> int | None:
     Returns:
         0 o 1 si se puede mapear, o None si no es compatible.
     """
+    # Normalizamos la etiqueta para soportar variantes comunes de distintos
+    # modelos de sentimiento.
     label = raw_label.strip().upper()
 
     direct_map = {
@@ -102,7 +111,8 @@ def _map_model_label(raw_label: str) -> int | None:
     if label in direct_map:
         return direct_map[label]
 
-    # Algunos modelos devuelven etiquetas más verbosas.
+    # Algunas salidas contienen texto extra, así que hacemos una coincidencia
+    # parcial para no perder predicciones válidas.
     if "NEG" in label:
         return 0
     if "POS" in label:
@@ -126,6 +136,7 @@ def run_experiment(
     Returns:
         Accuracy de la run si hubo predicciones válidas, o None.
     """
+    # Construimos un nombre corto para identificar la run en MLflow.
     run_name = (
         "thr="
         f"{config['confidence_threshold']}_bs={config['batch_size']}_"
@@ -133,6 +144,7 @@ def run_experiment(
     )
 
     with mlflow.start_run(run_name=run_name):
+        # Registramos los parámetros para poder comparar runs en la UI.
         mlflow.log_params(
             {
                 "model_name": config["model_name"],
@@ -144,6 +156,7 @@ def run_experiment(
             }
         )
 
+        # El pipeline encapsula tokenización, inferencia y posprocesado.
         print(f"Cargando modelo {config['model_name']}...")
         clf = pipeline(
             "sentiment-analysis",
@@ -152,10 +165,12 @@ def run_experiment(
             max_length=config["max_length"],
         )
 
+        # Medimos latencia total para estimar el costo de inferencia.
         start = time.time()
         raw_preds = clf(list(texts), batch_size=config["batch_size"])
         latency = time.time() - start
 
+        # Guardamos solo predicciones confiables para las métricas finales.
         preds_filtered: list[int] = []
         labels_filtered: list[int] = []
         uncertain_count = 0
@@ -164,8 +179,10 @@ def run_experiment(
         prediction_rows: list[dict[str, Any]] = []
 
         for text, true_label, raw_pred in zip(texts, labels, raw_preds):
+            # Cada salida incluye etiqueta y score de confianza.
             score = float(raw_pred["score"])
             mapped = _map_model_label(str(raw_pred["label"]))
+            # Se acepta solo si la etiqueta se pudo mapear y supera el umbral.
             accepted = (
                 mapped is not None
                 and score >= float(config["confidence_threshold"])
@@ -175,11 +192,14 @@ def run_experiment(
                 preds_filtered.append(mapped)
                 labels_filtered.append(int(true_label))
             elif mapped is None:
+                # Si la etiqueta no se pudo interpretar, se cuenta aparte.
                 dropped_by_label_map += 1
                 uncertain_count += 1
             else:
+                # Si el score es bajo, tratamos el caso como no confiable.
                 uncertain_count += 1
 
+            # Se registra una muestra por texto para inspección posterior.
             prediction_rows.append(
                 {
                     "text": text,
@@ -192,6 +212,8 @@ def run_experiment(
             )
 
         if len(preds_filtered) == 0:
+            # Evitamos dividir entre cero y dejamos constancia de que la
+            # configuración no produjo predicciones válidas.
             mlflow.log_metrics(
                 {
                     "accuracy": 0.0,
@@ -211,6 +233,7 @@ def run_experiment(
         coverage = len(preds_filtered) / len(labels)
         avg_latency_ms = (latency / len(texts)) * 1000
 
+        # Se loguean métricas agregadas para comparar configuraciones.
         mlflow.log_metrics(
             {
                 "accuracy": round(float(acc), 4),
@@ -230,6 +253,7 @@ def run_experiment(
             zero_division=0,
         )
 
+        # El reporte se guarda como artefacto para revisar soporte por clase.
         report_path = _tmp_file("classification_report_sesion6.txt")
         report_path.write_text(
             f"Config: {json.dumps(config, indent=2)}\n\n{report}",
@@ -237,6 +261,7 @@ def run_experiment(
         )
         mlflow.log_artifact(str(report_path))
 
+        # También se guardan ejemplos de predicciones para depuración manual.
         preds_path = _tmp_file("predictions_sesion6.json")
         preds_path.write_text(
             json.dumps(prediction_rows[:20], ensure_ascii=False, indent=2),
@@ -253,6 +278,7 @@ def run_experiment(
 
 def print_best_run() -> None:
     """Imprime la mejor run por accuracy del experimento actual."""
+    # Se consulta MLflow directamente para encontrar la run con mejor accuracy.
     client = mlflow.MlflowClient()
     experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
     if experiment is None:
@@ -268,6 +294,7 @@ def print_best_run() -> None:
         print("No hay runs registradas en el experimento aún.")
         return
 
+    # Se muestra un resumen mínimo de la mejor ejecución.
     best_run = runs[0]
     print("\nMejor run detectada:")
     print(f"run_id={best_run.info.run_id}")
@@ -277,14 +304,17 @@ def print_best_run() -> None:
 
 def main() -> None:
     """Orquesta la evaluación de todas las configuraciones de la sesión."""
+    # Si existe un archivo `.env`, se carga antes de tocar MLflow o datasets.
     _load_optional_env_file()
     mlflow.set_experiment(EXPERIMENT_NAME)
 
+    # Se descarga una muestra de validación de SST-2 para evaluar las variantes.
     print("Cargando dataset SST-2...")
     dataset = load_dataset("glue", "sst2", split="validation[:200]")
     texts = dataset["sentence"]
     labels = dataset["label"]
 
+    # Cada configuración genera una run independiente en MLflow.
     print(f"Lanzando {len(CONFIGS)} experimentos...")
     for i, cfg in enumerate(CONFIGS, start=1):
         print(
@@ -294,6 +324,7 @@ def main() -> None:
         )
         run_experiment(cfg, texts=texts, labels=labels)
 
+    # Al final queda un recordatorio para abrir la interfaz y comparar runs.
     print("\nExperimentos completados. Abre http://localhost:5000 para comparar.")
     print_best_run()
 
