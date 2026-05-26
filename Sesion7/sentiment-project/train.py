@@ -116,10 +116,7 @@ def main() -> None:
         mlflow.set_experiment(EXPERIMENT_NAME)
 
     with mlflow.start_run():
-        # ── 1. Log de parámetros ──────────────────────────────────────
-        mlflow.log_params(vars(args))
-
-        # ── 2. Cargar datos ───────────────────────────────────────────
+        # ── 1. Cargar datos ───────────────────────────────────────────
         print(f"Cargando SST-2: train={args.num_train_samples}, "
               f"eval={args.num_eval_samples}")
         train_ds = load_dataset(
@@ -129,7 +126,7 @@ def main() -> None:
             "glue", "sst2", split=f"validation[:{args.num_eval_samples}]"
         )
 
-        # ── 3. Tokenizar ──────────────────────────────────────────────
+        # ── 2. Tokenizar ──────────────────────────────────────────────
         tokenizer = AutoTokenizer.from_pretrained(args.model_name)
         train_ds = train_ds.map(
             lambda ex: _tokenize(ex, tokenizer, args.max_length),
@@ -144,7 +141,7 @@ def main() -> None:
         eval_ds.set_format("torch", columns=[
                            "input_ids", "attention_mask", "label"])
 
-        # ── 4. Cargar modelo base y fine-tune ─────────────────────────
+        # ── 3. Cargar modelo base y fine-tune ─────────────────────────
         print(f"Fine-tuning {args.model_name} durante {args.epochs} epochs...")
         model = AutoModelForSequenceClassification.from_pretrained(
             args.model_name,
@@ -186,7 +183,7 @@ def main() -> None:
         trainer.train()
         train_time = time.time() - t0
 
-        # ── 5. Evaluación final ───────────────────────────────────────
+        # ── 4. Evaluación final ───────────────────────────────────────
         print("Evaluando modelo fine-tuneado...")
         eval_results = trainer.evaluate()
         train_loss = (

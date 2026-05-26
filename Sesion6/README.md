@@ -18,12 +18,12 @@ sobre qué modelo desplegar.
 [MLflow](https://mlflow.org/) es una plataforma open-source para gestionar el
 ciclo de vida del ML. Tiene cuatro módulos principales:
 
-| Módulo | Función | Sesión del curso |
-|---|---|---|
-| **MLflow Tracking** | Registrar experimentos (parámetros, métricas, artefactos) | Sesión 6 |
-| **MLflow Projects** | Estandarizar la ejecución del código | Sesión 7 |
-| **MLflow Models** | Empaquetar modelos con formato estándar | Sesión 7 |
-| **MLflow Model Registry** | Gestionar el ciclo de vida de modelos (versionado, etapas) | Sesión 7 |
+| Módulo                    | Función                                                    | Sesión del curso |
+| ------------------------- | ---------------------------------------------------------- | ---------------- |
+| **MLflow Tracking**       | Registrar experimentos (parámetros, métricas, artefactos)  | Sesión 6         |
+| **MLflow Projects**       | Estandarizar la ejecución del código                       | Sesión 7         |
+| **MLflow Models**         | Empaquetar modelos con formato estándar                    | Sesión 7         |
+| **MLflow Model Registry** | Gestionar el ciclo de vida de modelos (versionado, etapas) | Sesión 7         |
 
 ### ¿Qué es un experimento?
 
@@ -81,12 +81,12 @@ El dataset **SST-2** (Stanford Sentiment Treebank) del benchmark
 [GLUE](https://gluebenchmark.com/) contiene reseñas de películas de
 Rotten Tomatoes clasificadas como positivas o negativas:
 
-| Propiedad | Valor |
-|---|---|
-| Tarea | Clasificación binaria de sentimiento |
-| Clases | `0` = Negativo, `1` = Positivo |
-| Train | ~67 349 frases |
-| Validation | ~872 frases |
+| Propiedad  | Valor                                |
+| ---------- | ------------------------------------ |
+| Tarea      | Clasificación binaria de sentimiento |
+| Clases     | `0` = Negativo, `1` = Positivo       |
+| Train      | ~67 349 frases                       |
+| Validation | ~872 frases                          |
 
 En esta sesión usamos solo el split de **validación** para evaluar un modelo
 ya entrenado. En la Sesión 7, usaremos el split de **entrenamiento** para
@@ -103,21 +103,21 @@ En esta sesión lo usamos tal cual, sin modificar sus pesos.
 
 ## Archivos incluidos
 
-| Archivo | Descripción |
-|---|---|
+| Archivo                  | Descripción                                                     |
+| ------------------------ | --------------------------------------------------------------- |
 | `experiment_tracking.py` | Script principal: evalúa 3 configuraciones y registra en MLflow |
-| `requirements.txt` | Dependencias Python |
+| `requirements.txt`       | Dependencias Python                                             |
 
 ## ¿Qué hace `experiment_tracking.py`?
 
 El script ejecuta **3 configuraciones** diferentes sobre el mismo modelo y
 dataset, registrando cada una como un run independiente en MLflow:
 
-| Run | Batch size | Umbral confianza | Max length |
-|---|---|---|---|
-| Config 1 | 16 | 0.5 | 128 |
-| Config 2 | 32 | 0.7 | 128 |
-| Config 3 | 16 | 0.9 | 64 |
+| Run      | Batch size | Umbral confianza | Max length |
+| -------- | ---------- | ---------------- | ---------- |
+| Config 1 | 16         | 0.5              | 128        |
+| Config 2 | 32         | 0.7              | 128        |
+| Config 3 | 16         | 0.9              | 64         |
 
 Para cada configuración:
 
@@ -143,8 +143,10 @@ Esto abre la interfaz web en [http://localhost:5000](http://localhost:5000).
 
 ```bash
 cd Sesion6
-pip install -r requirements.txt
-python experiment_tracking.py
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+uv run experiment_tracking.py
 ```
 
 ### 3. Comparar resultados
@@ -155,13 +157,13 @@ gráficas de métricas y descargar artefactos.
 
 ## Métricas registradas
 
-| Métrica | Descripción |
-|---|---|
-| `accuracy` | Proporción de predicciones correctas |
-| `f1_weighted` | Media armónica ponderada de precisión y recall |
-| `coverage` | Fracción de muestras que superan el umbral de confianza |
-| `avg_latency_ms` | Tiempo medio de inferencia por muestra (ms) |
-| `uncertain_samples` | Muestras descartadas por no superar el umbral |
+| Métrica             | Descripción                                             |
+| ------------------- | ------------------------------------------------------- |
+| `accuracy`          | Proporción de predicciones correctas                    |
+| `f1_weighted`       | Media armónica ponderada de precisión y recall          |
+| `coverage`          | Fracción de muestras que superan el umbral de confianza |
+| `avg_latency_ms`    | Tiempo medio de inferencia por muestra (ms)             |
+| `uncertain_samples` | Muestras descartadas por no superar el umbral           |
 
 ## Relación con la siguiente sesión
 
