@@ -242,6 +242,99 @@ mlflow run . --experiment-name sentiment-analysis-hf -P epochs=2
 python register_and_promote.py --promote-to-production
 ```
 
+## Solución de problemas (Troubleshooting)
+
+### Error: `'NoneType' object has no attribute 'predict'`
+
+**Síntoma:** al llamar a `POST /predict` (o `/predict/explain`), la API
+responde con HTTP 500 y un cuerpo similar a:
+
+```json
+{
+  "detail": "Error en inferencia: 'NoneType' object has no attribute 'predict'. model_uri=models:/SentimentAnalyzer/Production, tracking_uri=sqlite:///../../Sesion7/sentiment-project/mlflow.db. Verifica que el modelo exista en Registry y que la versión de Python sea compatible con la del modelo registrado."
+}
+```
+
+**Causa raíz:** la variable global `model` quedó en `None` cuando se llamó
+al endpoint. Esto ocurre si `mlflow.pyfunc.load_model(...)` falló en el
+arranque y la excepción fue capturada silenciosamente por el bloque
+`try/except` de `load_model()`. Entre los motivos más frecuentes:
+
+1. **El modelo no existe en el Registry** (o la ruta `mlflow.db` no es la
+   correcta). Verificar con:
+   ```bash
+   $CONDA_PREFIX/bin/python -c "import mlflow; m = mlflow.pyfunc.load_model('models:/SentimentAnalyzer/Production'); print(m)"
+   ```
+   Si la URI está mal, corregir `tracking_uri` / `registry_uri` al levantar
+   la API:
+   ```bash
+   mlflow run . -e serve -P tracking_uri=sqlite:////ruta/absoluta/a/mlflow.db
+   ```
+
+2. **Incompatibilidad de versión de Python** entre el entorno donde se
+   entrenó/registró el modelo (Sesión 7) y el entorno donde se sirve
+   (Sesión 8). El modelo pyfunc puede contener `cloudpickle`/`dill` con
+   referencias a clases o módulos cuyo bytecode cambió de versión.
+   Solución: alinear la `python` del `conda.yaml` de esta sesión con la
+   usada en la Sesión 7 y reinstalar el entorno:
+   ```bash
+   mlflow run . -e serve --force-recreate-env
+   ```
+
+3. **Dependencias de runtime del modelo ausentes** (p. ej. `transformers`,
+   `torch`, `tokenizers`, `scikit-learn` con una versión mayor distinta).
+   El wrapper pyfunc intenta deserializar el modelo y falla. Verificar que
+   las versiones de `requirements.txt` / `conda.yaml` coincidan con las
+   registradas como `pip_requirements` / `conda_env` del run de la Sesión 7.
+
+**Cómo depurarlo en local** (sin pasar por la API):
+
+```python
+import mlflow
+mlflow.set_tracking_uri("sqlite:///../../Sesion7/sentiment-project/mlflow.db")
+model = mlflow.pyfunc.load_model("models:/SentimentAnalyzer/Production")
+print(model.predict(["hello world"]))
+```
+
+Si este snippet lanza una excepción legible (por ejemplo,
+`ModuleNotFoundError`, `VersionConflict`, `RegisteredModelNotFoundException`),
+esa es la causa real; el `NoneType` de la API es solo el síntoma de que la
+carga falló y la app siguió sirviendo tráfico.
+
+### Caso real documentado: schema del Registry ahead del código
+
+En esta sesión, el error se reprodujo con `mlflow==3.11.1` instalado en el
+entorno de la API, mientras que la `mlflow.db` de la Sesión 7 había sido
+generada por una versión más nueva (alembic revision `7d34483879f0`,
+inexistente en 3.11.1). MLflow falla la verificación de schema y devuelve
+`None` en `load_model`, lo que la API interpreta como el síntoma descrito.
+
+**Solución aplicada:**
+
+1. Verificar la revisión de alembic en la DB:
+   ```bash
+   sqlite3 ../../Sesion7/sentiment-project/mlflow.db "SELECT * FROM alembic_version;"
+   ```
+2. Alinear `mlflow` instalado con la cabeza de migración de la DB
+   (en este caso `mlflow==3.13.0`). Se actualizó `requirements.txt` y
+   `conda.yaml` para fijar esa versión.
+3. Si aun así persiste el fallo de carga, revisar que los artefactos del
+   modelo referenciados desde `model_config.json` (en `mlruns/.../artifacts/`)
+   existan en disco. En este proyecto el `model_path` apuntaba a
+   `/tmp/fine_tuned_model` (limpio por el sistema) y se sustituyó por la
+   ruta local del modelo público `distilbert-base-uncased-finetuned-sst-2-english`
+   ya cacheado en `~/.cache/huggingface/hub/`. En producción lo correcto
+   es re-entrenar y guardar los pesos dentro de los artefactos de MLflow
+   (`mlflow.transformers.log_model` o un `mlflow.log_artifact` de los
+   `safetensors`).
+
+**Defensa en el código:** la API ya protege los endpoints con
+`if model is None: raise HTTPException(503, ...)` para devolver un
+`Service Unavailable` claro en vez de un 500 confuso. Si ves el 500 con
+`'NoneType' object has no attribute 'predict'`, asegúrate de estar
+ejecutando la versión actual de `app.py` (revisa también `app_opcional.py`
+si lo estás usando como base).
+
 ## Relación con sesiones anteriores y siguientes
 
 ```
