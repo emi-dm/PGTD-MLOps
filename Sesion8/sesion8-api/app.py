@@ -35,6 +35,7 @@ class PredictResponse(BaseModel):
     """
 
     predictions: list[int]
+    hola: str = "mundo"  # Campo adicional para demostrar cambios en el modelo
     model_uri: str
 
 
@@ -183,8 +184,8 @@ def _explain_single_text(
     return influences[:top_k]
 
 
-@app.get("/health")
-def health() -> dict[str, Any]:
+@app.get("/health") # ENDPOINT
+async def health() -> dict[str, Any]:
     """Endpoint de salud para monitoreo y diagnóstico básico."""
     tracking_uri, registry_uri = configure_mlflow_uris()
     return {
@@ -197,7 +198,7 @@ def health() -> dict[str, Any]:
 
 
 @app.post("/predict", response_model=PredictResponse)
-def predict(request: PredictRequest) -> PredictResponse:
+async def predict(request: PredictRequest) -> PredictResponse:
     """Realiza inferencia de sentimiento sobre una lista de textos."""
     try:
         configure_mlflow_uris()
@@ -222,7 +223,7 @@ def predict(request: PredictRequest) -> PredictResponse:
 
 
 @app.post("/predict/explain", response_model=ExplainResponse)
-def predict_explain(request: PredictRequest, top_k: int = 3) -> ExplainResponse:
+async def predict_explain(request: PredictRequest, top_k: int = 3) -> ExplainResponse:
     """Realiza inferencia y devuelve tokens influyentes por cada texto.
 
     Args:

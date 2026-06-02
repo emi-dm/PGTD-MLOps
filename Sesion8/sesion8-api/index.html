@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentiment Analyzer · Sesión 8</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --bg-soft: #1e293b;
+        --bg-card: #ffffff;
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --positive: #10b981;
+        --negative: #ef4444;
+        --neutral: #94a3b8;
+        --text: #0f172a;
+        --text-soft: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: var(--text);
+        padding: 24px 16px;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 32px;
+      }
+
+      header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 0.875rem;
+        margin-top: 12px;
+        color: white;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fbbf24;
+        animation: pulse 1.5s infinite;
+      }
+
+      .status-dot.ok {
+        background: var(--positive);
+      }
+      .status-dot.error {
+        background: var(--negative);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 24px;
+      }
+
+      .config-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .config-row label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-soft);
+        margin-bottom: 6px;
+      }
+
+      .config-row input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+      }
+
+      .config-row input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        padding: 14px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 1rem;
+        resize: vertical;
+        transition: border-color 0.2s;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      .hint {
+        font-size: 0.85rem;
+        color: var(--text-soft);
+        margin-top: 6px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.secondary {
+        background: var(--bg-soft);
+      }
+
+      button.secondary:hover:not(:disabled) {
+        background: #334155;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .results {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .result-item {
+        background: var(--bg-soft);
+        border-radius: 12px;
+        padding: 16px 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        animation: slideIn 0.3s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .result-text {
+        flex: 1;
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+
+      .badge {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .badge.positive {
+        background: var(--positive);
+        color: white;
+      }
+      .badge.negative {
+        background: var(--negative);
+        color: white;
+      }
+
+      .explanation {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: var(--text);
+        border-left: 3px solid var(--primary);
+      }
+
+      .explanation strong {
+        color: var(--primary-dark);
+        margin-right: 8px;
+      }
+
+      .tokens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .token {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .token-influence {
+        background: var(--primary);
+        color: white;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .error-banner {
+        background: #fee2e2;
+        color: #991b1b;
+        border-left: 4px solid var(--negative);
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 16px;
+        font-size: 0.95rem;
+      }
+
+      .empty {
+        text-align: center;
+        color: var(--text-soft);
+        padding: 40px 20px;
+        font-size: 0.95rem;
+      }
+
+      .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 8px;
+        opacity: 0.4;
+      }
+
+      footer {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.875rem;
+        margin-top: 24px;
+      }
+
+      footer code {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: ui-monospace, monospace;
+      }
+
+      @media (max-width: 600px) {
+        header h1 {
+          font-size: 1.8rem;
+        }
+        .card {
+          padding: 20px;
+        }
+        .config-row {
+          grid-template-columns: 1fr;
+        }
+        .result-item {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Sentiment Analyzer</h1>
+        <p>
+          Clasifica el sentimiento de tus textos con el modelo de la Sesión 8
+        </p>
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Comprobando estado…</span>
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="config-row">
+          <div>
+            <label for="apiUrl">URL de la API</label>
+            <input type="text" id="apiUrl" value="http://127.0.0.1:8001" />
+          </div>
+          <div>
+            <label for="topK">Top K tokens a explicar</label>
+            <input type="number" id="topK" value="3" min="1" max="10" />
+          </div>
+        </div>
+
+        <label
+          for="inputText"
+          style="display: block; font-weight: 600; margin-bottom: 6px"
+        >
+          Textos a analizar
+        </label>
+        <textarea
+          id="inputText"
+          placeholder="Escribe uno o varios textos separados por línea en blanco. Ejemplo:&#10;&#10;I love this product&#10;&#10;This is terrible&#10;&#10;The movie was okay, not great"
+        ></textarea>
+        <div class="hint">
+          Cada bloque separado por una línea en blanco se envía como un texto
+          independiente.
+        </div>
+
+        <div class="actions">
+          <button id="btnPredict" onclick="callPredict(false)">
+            Analizar sentimiento
+          </button>
+          <button id="btnExplain" class="secondary" onclick="callPredict(true)">
+            Analizar + explicar
+          </button>
+          <button class="secondary" onclick="checkHealth()">
+            Refrescar estado
+          </button>
+        </div>
+
+        <div id="errorBox"></div>
+
+        <div id="results" class="results"></div>
+      </div>
+
+      <footer>
+        Sesión 8 · <code>models:/SentimentAnalyzer/Production</code>
+      </footer>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function getApiBase() {
+        return $("apiUrl").value.trim().replace(/\/+$/, "");
+      }
+
+      function setBusy(buttonId, busy) {
+        const btn = $(buttonId);
+        if (!btn) return;
+        btn.disabled = busy;
+        if (busy) {
+          btn.dataset.original = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner"></span> Procesando…';
+        } else if (btn.dataset.original) {
+          btn.innerHTML = btn.dataset.original;
+        }
+      }
+
+      function showError(msg) {
+        $("errorBox").innerHTML =
+          `<div class="error-banner">${escapeHtml(msg)}</div>`;
+      }
+
+      function clearError() {
+        $("errorBox").innerHTML = "";
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function parseTexts() {
+        return $("inputText")
+          .value.split(/\n\s*\n/)
+          .map((t) => t.trim())
+          .filter(Boolean);
+      }
+
+      function setStatus(ok, text) {
+        const dot = $("statusDot");
+        const lbl = $("statusText");
+        dot.className =
+          "status-dot " + (ok === true ? "ok" : ok === false ? "error" : "");
+        lbl.textContent = text;
+      }
+
+      async function checkHealth() {
+        setStatus(null, "Comprobando estado…");
+        try {
+          const r = await fetch(`${getApiBase()}/health`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const data = await r.json();
+          setStatus(
+            data.model_loaded,
+            data.model_loaded
+              ? "Modelo cargado · " + data.model_uri
+              : "API OK · modelo aún no cargado",
+          );
+        } catch (e) {
+          setStatus(false, "API no alcanzable en " + getApiBase());
+        }
+      }
+
+      async function callPredict(withExplanation) {
+        clearError();
+        const texts = parseTexts();
+        if (texts.length === 0) {
+          showError("Introduce al menos un texto para analizar.");
+          return;
+        }
+
+        const btnId = withExplanation ? "btnExplain" : "btnPredict";
+        setBusy(btnId, true);
+        $("results").innerHTML = "";
+
+        const endpoint = withExplanation ? "/predict/explain" : "/predict";
+        const body = { texts };
+
+        try {
+          const r = await fetch(`${getApiBase()}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            throw new Error(data.detail || `HTTP ${r.status}`);
+          }
+          renderResults(data, withExplanation);
+          setStatus(true, "Predicción completada");
+        } catch (e) {
+          showError("Error: " + e.message);
+          setStatus(false, "Fallo en la última petición");
+        } finally {
+          setBusy(btnId, false);
+        }
+      }
+
+      function renderTokens(topTokens) {
+        if (!topTokens || topTokens.length === 0) return "";
+        const items = topTokens
+          .map((t) => {
+            const influence = Number(t.influence);
+            const formatted =
+              (influence >= 0 ? "+" : "") + influence.toFixed(3);
+            return `<span class="token">${escapeHtml(t.token)}<span class="token-influence">${formatted}</span></span>`;
+          })
+          .join("");
+        return `<div class="tokens">${items}</div>`;
+      }
+
+      function renderResults(data, withExplanation) {
+        const container = $("results");
+        if (!data.predictions || data.predictions.length === 0) {
+          container.innerHTML = `<div class="empty"><div class="empty-icon">🤔</div>Sin predicciones</div>`;
+          return;
+        }
+
+        const explanationsByText = withExplanation
+          ? Object.fromEntries(data.explanations.map((e) => [e.text, e]))
+          : {};
+
+        const items = data.predictions
+          .map((pred, i) => {
+            const text = withExplanation
+              ? data.explanations[i].text
+              : parseTexts()[i];
+            const isPos = pred === 1;
+            const badgeClass = isPos ? "positive" : "negative";
+            const label = isPos ? "Positivo" : "Negativo";
+
+            let explanationHtml = "";
+            if (withExplanation) {
+              const ex = data.explanations[i];
+              explanationHtml = `
+          <div class="explanation">
+            <strong>Tokens más influyentes:</strong>
+            ${renderTokens(ex.top_tokens)}
+          </div>`;
+            }
+
+            return `
+        <div class="result-item">
+          <div class="result-text">${escapeHtml(text)}</div>
+          <div class="badge ${badgeClass}">${label}</div>
+          ${explanationHtml}
+        </div>`;
+          })
+          .join("");
+
+        container.innerHTML = items;
+      }
+
+      // Estado inicial
+      checkHealth();
+      setInterval(checkHealth, 30000);
+    </script>
+  </body>
+</html>
