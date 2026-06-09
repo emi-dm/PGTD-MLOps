@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis - Frontend</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Análisis de Sentimiento</h1>
+            <p>Frontend para el modelo servido en Docker (Sesión 9)</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <label for="texts">Textos a clasificar (uno por línea):</label>
+                <textarea id="texts" rows="8" placeholder="Escribe aquí los textos...\nEjemplo: This is amazing!\nEjemplo: I hate this product."></textarea>
+                <div class="buttons">
+                    <button id="btn-predict" class="btn-primary">Predecir</button>
+                    <button id="btn-explain" class="btn-secondary">Predecir + Explicar</button>
+                </div>
+            </section>
+
+            <section class="config-section">
+                <label for="api-url">API URL:</label>
+                <input type="text" id="api-url" value="http://localhost:8000">
+                <label for="top-k">Top-K tokens (explicación):</label>
+                <input type="number" id="top-k" value="3" min="1" max="10">
+            </section>
+
+            <section id="results" class="results-section hidden">
+                <h2>Resultados</h2>
+                <div id="results-content"></div>
+            </section>
+
+            <section id="error" class="error-section hidden">
+                <h2>❌ Error</h2>
+                <pre id="error-content"></pre>
+            </section>
+        </main>
+
+        <footer>
+            <p>Sesión 9 - MLOps</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,15 +1,8 @@
 services:
   mlflow:
-    image: python:3.11-slim
-    command: >
-      sh -c "pip install --no-cache-dir mlflow==3.11.1 &&
-      mlflow server
-      --host 0.0.0.0
-      --port 5000
-      --allowed-hosts mlflow,localhost,127.0.0.1,mlflow:5000,localhost:5001
-      --backend-store-uri sqlite:////mlflow/mlflow.db
-      --artifacts-destination /mlflow/artifacts
-      --serve-artifacts"
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
     ports:
       - "5001:5000"
     volumes:
@@ -18,7 +11,8 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
       interval: 10s
       timeout: 5s
-      retries: 8
+      retries: 12
+      start_period: 60s
 
   api:
     build:
@@ -33,6 +27,16 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:

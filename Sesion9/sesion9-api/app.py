@@ -13,6 +13,7 @@ from typing import Any
 import mlflow.pyfunc
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
@@ -79,8 +80,16 @@ class ExplainResponse(BaseModel):
     model_uri: str
 
 
-app = FastAPI(title="Sentiment API - Sesión 8", version="1.0.0")
+app = FastAPI(title="Sentiment API - Sesión 9", version="1.0.0")
 _model_cache: Any | None = None
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def configure_mlflow_uris() -> tuple[str, str]:
@@ -90,8 +99,8 @@ def configure_mlflow_uris() -> tuple[str, str]:
         tuple[str, str]: URIs efectivas de tracking y registry.
     """
     default_sqlite = (
-        Path(__file__).resolve().parent.parent /
-        "sentiment-project" / "mlflow.db"
+        Path(__file__).resolve().parent.parent.parent /
+        "Sesion7" / "sentiment-project" / "mlflow.db"
     )
     fallback_uri = f"sqlite:///{default_sqlite}"
 

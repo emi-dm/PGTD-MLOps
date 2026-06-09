@@ -52,9 +52,12 @@ Consolidar un pipeline MLOps de extremo a extremo, pasando de experimentación l
 - `Sesion8/` · **API de inferencia (FastAPI) usando Registry**
   - `sesion8-api/README.md`
   - `sesion8-api/app.py`
-- `Sesion9/` · **Despliegue en Docker / Docker Compose**
+- `Sesion9/` · **Despliegue en Docker / Docker Compose + Frontend**
   - `sesion9-api/README.md`
   - `sesion9-api/docker-compose.yml`
+  - `sesion9-api/Dockerfile`
+  - `sesion9-api/app.py` (API FastAPI con CORS)
+  - `frontend/` (Frontend HTML/CSS/JS servido con Nginx)
 - `Sesion10/` · **Monitorización (Evidently)**
   - `generate_drift_report.py`
   - `monitor_production.py`
@@ -67,7 +70,7 @@ Consolidar un pipeline MLOps de extremo a extremo, pasando de experimentación l
 1. **Sesión 6**: registrar experimentos, parámetros, métricas y artefactos en MLflow.
 2. **Sesión 7**: estandarizar ejecución con MLflow Projects y gestionar ciclo de vida en Model Registry.
 3. **Sesión 8**: publicar el modelo en una API REST con FastAPI.
-4. **Sesión 9**: contenerizar y orquestar el stack completo con Docker Compose.
+4. **Sesión 9**: contenerizar y orquestar el stack completo con Docker Compose, incluyendo un frontend web para consumir el modelo.
 5. **Sesión 10**: detectar data drift y degradación de calidad con Evidently para cerrar el ciclo MLOps.
 
 ---
@@ -134,14 +137,38 @@ mlflow run . -e test
 mlflow run . -e serve
 ```
 
-### Sesión 9 · Despliegue con Docker Compose
+### Sesión 9 · Despliegue con Docker Compose + Frontend
 
 ```bash
 cd Sesion9/sesion9-api
-docker compose up -d
+docker compose up --build -d
+```
+
+Servicios levantados:
+- **MLflow UI**: http://localhost:5001
+- **API FastAPI**: http://localhost:8000
+  - Endpoints: `/health`, `/predict`, `/predict/explain`
+- **Frontend**: http://localhost:3000
+
+```bash
+# Test de integración
 python test_stack.py
+
+# Detener stack
 docker compose down
 ```
+
+> **Nota**: La API carga el modelo desde MLflow Model Registry. Si el volumen `mlflow_data` está vacío (primer arranque o tras `docker compose down -v`), registra el modelo desde un contenedor con la versión compatible de MLflow:
+>
+> ```bash
+> docker run --rm --network=sesion9-api_default \
+>   -e MLFLOW_TRACKING_URI=http://mlflow:5000 \
+>   -v $(pwd)/Sesion7/sentiment-project:/workspace \
+>   -w /workspace python:3.11-slim \
+>   sh -c 'pip install --no-cache-dir mlflow==2.21.0 transformers==4.48.0 torch==2.5.1 datasets==3.4.1 scikit-learn==1.5.2 evaluate==0.4.3 numpy==2.0.2 pandas==2.2.2 pyarrow==17.0.0 && python train.py && python register_and_promote.py --promote-to-production'
+> ```
+>
+> Ver `Sesion9/sesion9-api/README.md` para detalles completos.
 
 ### Sesión 10 · Monitorización y drift
 
@@ -161,6 +188,7 @@ python monitor_production.py
 - **MLflow runs**: en carpetas `mlruns/` de sesiones de tracking/registro.
 - **Reporte de drift**: `Sesion10/drift_report.html`.
 - **Modelo en producción (registry)**: alias/etapa `Production` en sesiones 7–9.
+- **Frontend web**: interfaz gráfica para inferencia y explicación de predicciones en Sesión 9.
 
 ---
 
