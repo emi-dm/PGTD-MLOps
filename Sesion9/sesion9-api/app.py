@@ -1,7 +1,7 @@
-"""API de inferencia para la Sesión 8.
+"""API de inferencia para la Sesión 9.
 
 Expone endpoints HTTP para cargar el modelo desde MLflow Model Registry y
-realizar predicciones de sentimiento.
+realizar predicciones de sentimiento. Desplegada con Docker.
 """
 
 from __future__ import annotations
@@ -93,7 +93,11 @@ app.add_middleware(
 
 
 def configure_mlflow_uris() -> tuple[str, str]:
-    """Configura URIs de tracking/registry con fallback al proyecto Sesión 8.
+    """Configura URIs de tracking/registry con fallback al proyecto Sesión 7.
+
+    En Docker Compose, MLFLOW_TRACKING_URI se establece como variable de
+    entorno apuntando al servicio mlflow (http://mlflow:5000). El fallback
+    local es para ejecución fuera de contenedor.
 
     Returns:
         tuple[str, str]: URIs efectivas de tracking y registry.

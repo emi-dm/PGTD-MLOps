@@ -39,6 +39,14 @@ def main() -> None:
     client = MlflowClient()
 
     experiment = client.get_experiment_by_name(args.experiment_name)
+    if experiment is None and args.experiment_name != "Default":
+        experiment = client.get_experiment_by_name("Default")
+        if experiment is not None:
+            print(
+                f"Experimento '{args.experiment_name}' no encontrado; "
+                "usando 'Default'."
+            )
+
     if experiment is None:
         raise ValueError(
             f"No existe el experimento: {args.experiment_name}. "

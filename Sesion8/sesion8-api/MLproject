@@ -19,10 +19,10 @@ entry_points:
         default: Production
       tracking_uri:
         type: str
-        default: sqlite:///../sentiment-project/mlflow.db
+        default: sqlite:///../../Sesion7/sentiment-project/mlflow.db
       registry_uri:
         type: str
-        default: sqlite:///../sentiment-project/mlflow.db
+        default: sqlite:///../../Sesion7/sentiment-project/mlflow.db
     command: "MODEL_NAME={model_name} MODEL_STAGE={model_stage} MLFLOW_TRACKING_URI={tracking_uri} MLFLOW_REGISTRY_URI={registry_uri} $CONDA_PREFIX/bin/python -m uvicorn app:app --host {host} --port {port}"
 
   test:

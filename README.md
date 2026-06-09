@@ -44,21 +44,24 @@ Consolidar un pipeline MLOps de extremo a extremo, pasando de experimentación l
 ## Estructura del repositorio
 
 - `Sesion6/` · **MLflow Tracking**
+  - `README.md`
   - `experiment_tracking.py`
   - `requirements.txt`
 - `Sesion7/` · **MLflow Projects + Model Registry**
   - `README.md`
-  - `sentiment-project/`
+  - `sentiment-project/` (MLproject, train.py, register_and_promote.py, ...)
 - `Sesion8/` · **API de inferencia (FastAPI) usando Registry**
   - `sesion8-api/README.md`
   - `sesion8-api/app.py`
 - `Sesion9/` · **Despliegue en Docker / Docker Compose + Frontend**
   - `sesion9-api/README.md`
+  - `sesion9-api/app.py`
   - `sesion9-api/docker-compose.yml`
   - `sesion9-api/Dockerfile`
   - `sesion9-api/app.py` (API FastAPI con CORS)
   - `frontend/` (Frontend HTML/CSS/JS servido con Nginx)
 - `Sesion10/` · **Monitorización (Evidently)**
+  - `README.md`
   - `generate_drift_report.py`
   - `monitor_production.py`
   - `drift_report.html`

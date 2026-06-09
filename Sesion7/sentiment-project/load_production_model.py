@@ -21,7 +21,7 @@ def main() -> None:
     prod_model = mlflow.pyfunc.load_model(
         f"models:/{args.model_name}/Production"
     )
-    test = pd.DataFrame({"text": ["Great product, very happy!"]})
+    test = pd.DataFrame({"text": ["very bad!"]})
     pred = prod_model.predict(test)
     print("Predicción:", pred)
 
