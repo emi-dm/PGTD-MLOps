@@ -35,7 +35,6 @@ class PredictResponse(BaseModel):
     """
 
     predictions: list[int]
-    hola: str = "mundo"  # Campo adicional para demostrar cambios en el modelo
     model_uri: str
 
 

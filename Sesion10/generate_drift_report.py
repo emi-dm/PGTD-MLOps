@@ -66,15 +66,15 @@ def load_reference_and_production(sample_size: int) -> tuple[Any, Any]:
         Tupla (dataset_referencia, dataset_produccion).
     """
     reference = load_dataset(
-        "glue", "sst2", split=f"validation[:{sample_size}]")
+        "nyu-mll/glue", "sst2", split=f"validation[:{sample_size}]")
 
-    production = load_dataset("glue", "sst2", split=f"test[:{sample_size}]")
+    production = load_dataset("nyu-mll/glue", "sst2", split=f"test[:{sample_size}]")
 
     if "label" not in production.column_names:
         print(
             "Split test sin label; usando validation[300:600] como producción.")
         production = load_dataset(
-            "glue",
+            "nyu-mll/glue",
             "sst2",
             split=f"validation[{sample_size}:{sample_size * 2}]",
         )
@@ -83,7 +83,7 @@ def load_reference_and_production(sample_size: int) -> tuple[Any, Any]:
         if len(labels) == 0 or all(int(lbl) < 0 for lbl in labels):
             print("Labels no válidos en test; usando validation[300:600].")
             production = load_dataset(
-                "glue",
+                "nyu-mll/glue",
                 "sst2",
                 split=f"validation[{sample_size}:{sample_size * 2}]",
             )

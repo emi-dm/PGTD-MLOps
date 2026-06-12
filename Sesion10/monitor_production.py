@@ -219,13 +219,13 @@ def collect_live_data(
     # Cargar datos de referencia (split validation, primera mitad).
     ref_size = num_samples
     ref_dataset = load_dataset(
-        "glue", "sst2", split=f"validation[:{ref_size}]")
+        "nyu-mll/glue", "sst2", split=f"validation[:{ref_size}]")
     ref_texts = ref_dataset["sentence"]
     ref_labels = ref_dataset["label"]
 
     # Cargar datos de producción simulada (split validation, segunda mitad).
     prod_dataset = load_dataset(
-        "glue", "sst2", split=f"validation[{ref_size}:{ref_size * 2}]"
+        "nyu-mll/glue", "sst2", split=f"validation[{ref_size}:{ref_size * 2}]"
     )
     prod_texts = prod_dataset["sentence"]
     prod_labels = prod_dataset["label"]
